@@ -68,20 +68,37 @@ const seedDatabase = async () => {
       }
     ];
 
-    const { data: users, error: usersError } = await supabaseAdmin
-      .from('users')
-      .upsert(sampleUsers, { 
-        onConflict: 'email',
-        ignoreDuplicates: true 
-      })
-      .select();
-
-    if (usersError) {
-      console.error('Error creating users:', usersError);
-      throw usersError;
+    // Insert users one by one to handle conflicts
+    let users = [];
+    for (const user of sampleUsers) {
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('users')
+          .upsert(user, { onConflict: 'email' })
+          .select()
+          .single();
+        
+        if (error) {
+          // If user already exists, get it
+          if (error.code === '23505') {
+            const { data: existingUser } = await supabaseAdmin
+              .from('users')
+              .select()
+              .eq('email', user.email)
+              .single();
+            if (existingUser) users.push(existingUser);
+          } else {
+            console.error(`Error creating user ${user.email}:`, error);
+          }
+        } else {
+          users.push(data);
+        }
+      } catch (err) {
+        console.error(`Error with user ${user.email}:`, err);
+      }
     }
 
-    console.log(`✅ Created ${users.length} sample users`);
+    console.log(`✅ Created/found ${users.length} sample users`);
 
     // Get user IDs for relationships
     const customerUser = users.find(u => u.user_type === 'customer');
@@ -114,18 +131,21 @@ const seedDatabase = async () => {
         }
       ];
 
-      const { error: addressError } = await supabaseAdmin
-        .from('user_addresses')
-        .upsert(sampleAddresses, { 
-          onConflict: 'user_id,label',
-          ignoreDuplicates: true 
-        });
-
-      if (addressError) {
-        console.error('Error creating addresses:', addressError);
-      } else {
-        console.log('✅ Created sample addresses');
+      for (const address of sampleAddresses) {
+        try {
+          const { error } = await supabaseAdmin
+            .from('user_addresses')
+            .insert(address);
+          
+          if (error && error.code !== '23505') { // Ignore duplicate key errors
+            console.error('Error creating address:', error);
+          }
+        } catch (err) {
+          console.error('Error with address:', err);
+        }
       }
+      
+      console.log('✅ Created sample addresses');
     }
 
     // 3. Create sample payment methods for customer
@@ -151,18 +171,21 @@ const seedDatabase = async () => {
         }
       ];
 
-      const { error: paymentError } = await supabaseAdmin
-        .from('payment_methods')
-        .upsert(samplePaymentMethods, { 
-          onConflict: 'user_id,provider',
-          ignoreDuplicates: true 
-        });
-
-      if (paymentError) {
-        console.error('Error creating payment methods:', paymentError);
-      } else {
-        console.log('✅ Created sample payment methods');
+      for (const paymentMethod of samplePaymentMethods) {
+        try {
+          const { error } = await supabaseAdmin
+            .from('payment_methods')
+            .insert(paymentMethod);
+          
+          if (error && error.code !== '23505') { // Ignore duplicate key errors
+            console.error('Error creating payment method:', error);
+          }
+        } catch (err) {
+          console.error('Error with payment method:', err);
+        }
       }
+      
+      console.log('✅ Created sample payment methods');
     }
 
     // 4. Create cleaner profiles
@@ -171,7 +194,7 @@ const seedDatabase = async () => {
       
       const cleanerProfiles = [
         {
-          user_id: cleanerUsers[0].id, // Ganang Setyo Hadi
+          user_id: cleanerUsers[0]?.id, // Ganang Setyo Hadi
           bio: 'Saya adalah seorang pembersih profesional dengan pengalaman lebih dari 5 tahun. Saya mengutamakan kepuasan pelanggan dan hasil yang bersih, rapi, serta higienis.',
           experience_years: 5,
           hourly_rate: 50000,
@@ -185,7 +208,7 @@ const seedDatabase = async () => {
           profile_verified: true
         },
         {
-          user_id: cleanerUsers[1].id, // Rafli Afriza Nugraha
+          user_id: cleanerUsers[1]?.id, // Rafli Afriza Nugraha
           bio: 'Berpengalaman dalam pembersihan rumah dengan detail yang tinggi. Selalu tepat waktu dan menggunakan bahan pembersih yang aman.',
           experience_years: 3,
           hourly_rate: 45000,
@@ -199,7 +222,7 @@ const seedDatabase = async () => {
           profile_verified: true
         },
         {
-          user_id: cleanerUsers[2].id, // Fadlul Ihsan
+          user_id: cleanerUsers[2]?.id, // Fadlul Ihsan
           bio: 'Ahli dalam pembersihan mendalam dengan pengalaman bertahun-tahun. Menjamin kepuasan pelanggan 100%.',
           experience_years: 8,
           hourly_rate: 35000,
@@ -212,20 +235,23 @@ const seedDatabase = async () => {
           equipment_provided: true,
           profile_verified: true
         }
-      ];
+      ].filter(profile => profile.user_id); // Remove profiles without user_id
 
-      const { error: profileError } = await supabaseAdmin
-        .from('cleaner_profiles')
-        .upsert(cleanerProfiles, { 
-          onConflict: 'user_id',
-          ignoreDuplicates: true 
-        });
-
-      if (profileError) {
-        console.error('Error creating cleaner profiles:', profileError);
-      } else {
-        console.log('✅ Created cleaner profiles');
+      for (const profile of cleanerProfiles) {
+        try {
+          const { error } = await supabaseAdmin
+            .from('cleaner_profiles')
+            .insert(profile);
+          
+          if (error && error.code !== '23505') { // Ignore duplicate key errors
+            console.error('Error creating cleaner profile:', error);
+          }
+        } catch (err) {
+          console.error('Error with cleaner profile:', err);
+        }
       }
+      
+      console.log('✅ Created cleaner profiles');
     }
 
     // 5. Create sample schedules for cleaners
@@ -238,28 +264,26 @@ const seedDatabase = async () => {
         .select('id, user_id')
         .in('user_id', cleanerUsers.map(u => u.id));
 
-      for (const profile of cleanerProfiles) {
-        const schedules = [];
+      for (const profile of cleanerProfiles || []) {
         // Create schedule for Monday to Saturday (1-6)
         for (let day = 1; day <= 6; day++) {
-          schedules.push({
-            cleaner_id: profile.id,
-            day_of_week: day,
-            start_time: '08:00',
-            end_time: day === 6 ? '16:00' : '18:00', // Saturday until 4 PM
-            is_available: true
-          });
-        }
+          try {
+            const { error } = await supabaseAdmin
+              .from('cleaner_schedules')
+              .insert({
+                cleaner_id: profile.id,
+                day_of_week: day,
+                start_time: '08:00',
+                end_time: day === 6 ? '16:00' : '18:00', // Saturday until 4 PM
+                is_available: true
+              });
 
-        const { error: scheduleError } = await supabaseAdmin
-          .from('cleaner_schedules')
-          .upsert(schedules, { 
-            onConflict: 'cleaner_id,day_of_week',
-            ignoreDuplicates: true 
-          });
-
-        if (scheduleError) {
-          console.error('Error creating schedules:', scheduleError);
+            if (error && error.code !== '23505') { // Ignore duplicate key errors
+              console.error('Error creating schedule:', error);
+            }
+          } catch (err) {
+            console.error('Error with schedule:', err);
+          }
         }
       }
       
@@ -287,17 +311,21 @@ const seedDatabase = async () => {
         }
       ];
 
-      const { error: notificationError } = await supabaseAdmin
-        .from('notifications')
-        .upsert(sampleNotifications, { 
-          ignoreDuplicates: true 
-        });
-
-      if (notificationError) {
-        console.error('Error creating notifications:', notificationError);
-      } else {
-        console.log('✅ Created sample notifications');
+      for (const notification of sampleNotifications) {
+        try {
+          const { error } = await supabaseAdmin
+            .from('notifications')
+            .insert(notification);
+          
+          if (error && error.code !== '23505') { // Ignore duplicate key errors
+            console.error('Error creating notification:', error);
+          }
+        } catch (err) {
+          console.error('Error with notification:', err);
+        }
       }
+      
+      console.log('✅ Created sample notifications');
     }
 
     console.log('🎉 Database seeding completed successfully!');
