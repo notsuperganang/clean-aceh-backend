@@ -1,6 +1,7 @@
 const express = require('express');
 const authRoutes = require('./authRoutes');
 const serviceRoutes = require('./serviceRoutes');
+const cleanerRoutes = require('./cleanerRoutes');
 
 const router = express.Router();
 
@@ -33,13 +34,27 @@ router.get('/', (req, res) => {
         stats: 'GET /api/v1/services/admin/stats (Admin)'
       },
       
+      // Cleaners ✅ NEW!
+      cleaners: {
+        list: 'GET /api/v1/cleaners',
+        detail: 'GET /api/v1/cleaners/:id',
+        search: 'GET /api/v1/cleaners/search',
+        availableAreas: 'GET /api/v1/cleaners/areas/available',
+        availableSkills: 'GET /api/v1/cleaners/skills/available',
+        updateProfile: 'PUT /api/v1/cleaners/profile (Cleaner)',
+        updateAvailability: 'PUT /api/v1/cleaners/availability (Cleaner)',
+        getSchedules: 'GET /api/v1/cleaners/schedules/me (Cleaner)',
+        updateSchedules: 'PUT /api/v1/cleaners/schedules (Cleaner)',
+        getStats: 'GET /api/v1/cleaners/stats/me (Cleaner)'
+      },
+      
       // Coming soon
-      cleaners: 'GET /api/v1/cleaners (Coming Soon)',
       orders: 'GET /api/v1/orders (Coming Soon)',
       reviews: 'GET /api/v1/reviews (Coming Soon)',
       payments: 'GET /api/v1/payments (Coming Soon)',
       notifications: 'GET /api/v1/notifications (Coming Soon)',
-      promotions: 'GET /api/v1/promotions (Coming Soon)'
+      promotions: 'GET /api/v1/promotions (Coming Soon)',
+      addresses: 'GET /api/v1/addresses (Coming Soon)'
     },
     
     // Sample requests
@@ -48,40 +63,70 @@ router.get('/', (req, res) => {
         method: 'POST',
         url: '/api/v1/auth/register',
         body: {
-          email: 'user@example.com',
+          email: 'cleaner@example.com',
           phone: '+62812345678901',
           password: 'password123',
           confirmPassword: 'password123',
           fullName: 'John Doe',
-          userType: 'customer'
+          userType: 'cleaner'
         }
       },
       login: {
         method: 'POST',
         url: '/api/v1/auth/login',
         body: {
-          emailOrPhone: 'user@example.com',
+          emailOrPhone: 'cleaner@example.com',
           password: 'password123'
         }
       },
-      listServices: {
+      listCleaners: {
         method: 'GET',
-        url: '/api/v1/services?page=1&limit=10&search=pembersihan&category=General',
+        url: '/api/v1/cleaners?page=1&limit=10&city=Banda Aceh&minRating=4.5&sortBy=rating',
         headers: 'No authentication required'
       },
-      createService: {
-        method: 'POST',
-        url: '/api/v1/services',
+      searchCleaners: {
+        method: 'GET',
+        url: '/api/v1/cleaners/search?query=Ganang&latitude=5.5502&longitude=95.3237&serviceDate=2025-04-29&serviceTime=10:00&minRating=4.0',
+        headers: 'No authentication required'
+      },
+      updateCleanerProfile: {
+        method: 'PUT',
+        url: '/api/v1/cleaners/profile',
         headers: {
-          'Authorization': 'Bearer admin_token_here',
+          'Authorization': 'Bearer cleaner_token_here',
           'Content-Type': 'application/json'
         },
         body: {
-          name: 'Pembersihan Jendela',
-          description: 'Layanan pembersihan jendela profesional',
-          basePrice: 90000,
-          durationHours: 1.5,
-          category: 'Windows'
+          bio: 'Professional cleaner with 5+ years experience',
+          experienceYears: 5,
+          hourlyRate: 50000,
+          serviceAreas: ['Banda Aceh', 'Sabang'],
+          skills: ['Pembersihan Umum', 'Pembersihan Kamar Mandi'],
+          equipmentProvided: true
+        }
+      },
+      updateCleanerSchedules: {
+        method: 'PUT',
+        url: '/api/v1/cleaners/schedules',
+        headers: {
+          'Authorization': 'Bearer cleaner_token_here',
+          'Content-Type': 'application/json'
+        },
+        body: {
+          schedules: [
+            {
+              dayOfWeek: 1,
+              startTime: '08:00',
+              endTime: '18:00',
+              isAvailable: true
+            },
+            {
+              dayOfWeek: 2,
+              startTime: '08:00',
+              endTime: '18:00',
+              isAvailable: true
+            }
+          ]
         }
       }
     }
@@ -91,20 +136,9 @@ router.get('/', (req, res) => {
 // Mount route modules
 router.use('/auth', authRoutes);
 router.use('/services', serviceRoutes);
+router.use('/cleaners', cleanerRoutes); // ✅ NEW! Cleaner management routes
 
-// Placeholder for future routes
-router.use('/cleaners', (req, res) => {
-  res.status(501).json({
-    message: 'Cleaner management endpoints coming soon',
-    plannedEndpoints: [
-      'GET /cleaners - List cleaners',
-      'GET /cleaners/:id - Get cleaner by ID', 
-      'GET /cleaners/search - Search cleaners',
-      'PUT /cleaners/:id/availability - Update availability'
-    ]
-  });
-});
-
+// Placeholder for future routes with planned endpoints
 router.use('/users', (req, res) => {
   res.status(501).json({
     message: 'User management endpoints coming soon',
@@ -113,18 +147,6 @@ router.use('/users', (req, res) => {
       'GET /users/:id - Get user by ID (Admin)',
       'PUT /users/:id - Update user (Admin)',
       'DELETE /users/:id - Delete user (Admin)'
-    ]
-  });
-});
-
-router.use('/cleaners', (req, res) => {
-  res.status(501).json({
-    message: 'Cleaner management endpoints coming soon',
-    plannedEndpoints: [
-      'GET /cleaners - List cleaners',
-      'GET /cleaners/:id - Get cleaner by ID',
-      'GET /cleaners/search - Search cleaners',
-      'PUT /cleaners/:id/availability - Update availability'
     ]
   });
 });
@@ -138,6 +160,19 @@ router.use('/orders', (req, res) => {
       'POST /orders - Create order',
       'PUT /orders/:id/status - Update order status',
       'DELETE /orders/:id - Cancel order'
+    ]
+  });
+});
+
+router.use('/addresses', (req, res) => {
+  res.status(501).json({
+    message: 'Address management endpoints coming soon',
+    plannedEndpoints: [
+      'GET /addresses - List user addresses',
+      'GET /addresses/:id - Get address by ID',
+      'POST /addresses - Create address',
+      'PUT /addresses/:id - Update address',
+      'DELETE /addresses/:id - Delete address'
     ]
   });
 });
