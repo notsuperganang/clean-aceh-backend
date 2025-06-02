@@ -2,7 +2,8 @@ const express = require('express');
 const authRoutes = require('./authRoutes');
 const serviceRoutes = require('./serviceRoutes');
 const cleanerRoutes = require('./cleanerRoutes');
-const orderRoutes = require('./orderRoutes'); // ✅ NEW!
+const orderRoutes = require('./orderRoutes');
+const addressRoutes = require('./addressRoutes'); // Already imported ✅
 
 const router = express.Router();
 
@@ -49,7 +50,7 @@ router.get('/', (req, res) => {
         getStats: 'GET /api/v1/cleaners/stats/me (Cleaner)'
       },
       
-      // Orders ✅ NEW! 
+      // Orders
       orders: {
         create: 'POST /api/v1/orders (Customer)',
         list: 'GET /api/v1/orders',
@@ -59,12 +60,24 @@ router.get('/', (req, res) => {
         cancel: 'POST /api/v1/orders/:id/cancel'
       },
       
+      // Addresses ✅ Updated!
+      addresses: {
+        list: 'GET /api/v1/addresses',
+        detail: 'GET /api/v1/addresses/:id',
+        main: 'GET /api/v1/addresses/main',
+        stats: 'GET /api/v1/addresses/stats',
+        create: 'POST /api/v1/addresses',
+        update: 'PUT /api/v1/addresses/:id',
+        setMain: 'PUT /api/v1/addresses/:id/main',
+        delete: 'DELETE /api/v1/addresses/:id'
+      },
+      
       // Coming soon
       reviews: 'GET /api/v1/reviews (Coming Soon)',
       payments: 'GET /api/v1/payments (Coming Soon)',
       notifications: 'GET /api/v1/notifications (Coming Soon)',
-      promotions: 'GET /api/v1/promotions (Coming Soon)',
-      addresses: 'GET /api/v1/addresses (Coming Soon)'
+      promotions: 'GET /api/v1/promotions (Coming Soon)'
+      // Removed redundant 'addresses' entry from Coming Soon
     },
     
     // Sample requests
@@ -101,6 +114,28 @@ router.get('/', (req, res) => {
           status: 'confirmed',
           notes: 'Pesanan dikonfirmasi, akan tiba dalam 30 menit'
         }
+      },
+      createAddress: {
+        method: 'POST',
+        url: '/api/v1/addresses',
+        headers: {
+          'Authorization': 'Bearer user_token_here',
+          'Content-Type': 'application/json'
+        },
+        body: {
+          label: 'Rumah',
+          fullAddress: 'Jl. Teuku Umar No. 24, Banda Aceh',
+          city: 'Banda Aceh',
+          postalCode: '23111',
+          isMain: true
+        }
+      },
+      listAddresses: {
+        method: 'GET',
+        url: '/api/v1/addresses?page=1&limit=10',
+        headers: {
+          'Authorization': 'Bearer user_token_here'
+        }
       }
     }
   });
@@ -110,7 +145,8 @@ router.get('/', (req, res) => {
 router.use('/auth', authRoutes);
 router.use('/services', serviceRoutes);
 router.use('/cleaners', cleanerRoutes);
-router.use('/orders', orderRoutes); // ✅ NEW! Order management routes
+router.use('/orders', orderRoutes);
+router.use('/addresses', addressRoutes); // ✅ Mount the addressRoutes
 
 // Placeholder for future routes
 router.use('/users', (req, res) => {
@@ -121,19 +157,6 @@ router.use('/users', (req, res) => {
       'GET /users/:id - Get user by ID (Admin)',
       'PUT /users/:id - Update user (Admin)',
       'DELETE /users/:id - Delete user (Admin)'
-    ]
-  });
-});
-
-router.use('/addresses', (req, res) => {
-  res.status(501).json({
-    message: 'Address management endpoints coming soon',
-    plannedEndpoints: [
-      'GET /addresses - List user addresses',
-      'GET /addresses/:id - Get address by ID',
-      'POST /addresses - Create address',
-      'PUT /addresses/:id - Update address',
-      'DELETE /addresses/:id - Delete address'
     ]
   });
 });
