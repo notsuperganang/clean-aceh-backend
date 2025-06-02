@@ -36,26 +36,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes placeholder
-app.get('/api/v1', (req, res) => {
-  res.status(200).json({
-    message: 'CleanAceh API v1 - Routes will be implemented soon',
-    version: '1.0.0',
-    endpoints: {
-      health: '/health',
-      auth: '/api/v1/auth',
-      users: '/api/v1/users', 
-      services: '/api/v1/services',
-      cleaners: '/api/v1/cleaners',
-      orders: '/api/v1/orders',
-      reviews: '/api/v1/reviews',
-      payments: '/api/v1/payments',
-      notifications: '/api/v1/notifications',
-      promotions: '/api/v1/promotions'
-    },
-    documentation: 'https://github.com/notsuperganang/clean-aceh-backend'
-  });
-});
+// API Routes
+const apiRoutes = require('./src/routes');
+app.use('/api/v1', apiRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
