@@ -2,6 +2,7 @@ const express = require('express');
 const authRoutes = require('./authRoutes');
 const serviceRoutes = require('./serviceRoutes');
 const cleanerRoutes = require('./cleanerRoutes');
+const orderRoutes = require('./orderRoutes'); // ✅ NEW!
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.get('/', (req, res) => {
         stats: 'GET /api/v1/services/admin/stats (Admin)'
       },
       
-      // Cleaners ✅ NEW!
+      // Cleaners
       cleaners: {
         list: 'GET /api/v1/cleaners',
         detail: 'GET /api/v1/cleaners/:id',
@@ -48,8 +49,17 @@ router.get('/', (req, res) => {
         getStats: 'GET /api/v1/cleaners/stats/me (Cleaner)'
       },
       
+      // Orders ✅ NEW! 
+      orders: {
+        create: 'POST /api/v1/orders (Customer)',
+        list: 'GET /api/v1/orders',
+        detail: 'GET /api/v1/orders/:id',
+        stats: 'GET /api/v1/orders/stats',
+        updateStatus: 'PUT /api/v1/orders/:id/status (Cleaner/Admin)',
+        cancel: 'POST /api/v1/orders/:id/cancel'
+      },
+      
       // Coming soon
-      orders: 'GET /api/v1/orders (Coming Soon)',
       reviews: 'GET /api/v1/reviews (Coming Soon)',
       payments: 'GET /api/v1/payments (Coming Soon)',
       notifications: 'GET /api/v1/notifications (Coming Soon)',
@@ -59,74 +69,37 @@ router.get('/', (req, res) => {
     
     // Sample requests
     examples: {
-      register: {
+      createOrder: {
         method: 'POST',
-        url: '/api/v1/auth/register',
+        url: '/api/v1/orders',
+        headers: {
+          'Authorization': 'Bearer customer_token_here',
+          'Content-Type': 'application/json'
+        },
         body: {
-          email: 'cleaner@example.com',
-          phone: '+62812345678901',
-          password: 'password123',
-          confirmPassword: 'password123',
-          fullName: 'John Doe',
-          userType: 'cleaner'
+          cleanerId: 'uuid-here',
+          serviceId: 'uuid-here',
+          serviceDate: '2025-04-29',
+          startTime: '10:00',
+          endTime: '12:00',
+          serviceAddress: 'Jl. Teuku Umar No. 24, Banda Aceh',
+          basePrice: 150000,
+          additionalServices: ['Pembersihan Jendela'],
+          additionalServicesPrice: 30000,
+          totalPrice: 195000,
+          specialInstructions: 'Mohon bawa peralatan sendiri'
         }
       },
-      login: {
-        method: 'POST',
-        url: '/api/v1/auth/login',
-        body: {
-          emailOrPhone: 'cleaner@example.com',
-          password: 'password123'
-        }
-      },
-      listCleaners: {
-        method: 'GET',
-        url: '/api/v1/cleaners?page=1&limit=10&city=Banda Aceh&minRating=4.5&sortBy=rating',
-        headers: 'No authentication required'
-      },
-      searchCleaners: {
-        method: 'GET',
-        url: '/api/v1/cleaners/search?query=Ganang&latitude=5.5502&longitude=95.3237&serviceDate=2025-04-29&serviceTime=10:00&minRating=4.0',
-        headers: 'No authentication required'
-      },
-      updateCleanerProfile: {
+      updateOrderStatus: {
         method: 'PUT',
-        url: '/api/v1/cleaners/profile',
+        url: '/api/v1/orders/:id/status',
         headers: {
           'Authorization': 'Bearer cleaner_token_here',
           'Content-Type': 'application/json'
         },
         body: {
-          bio: 'Professional cleaner with 5+ years experience',
-          experienceYears: 5,
-          hourlyRate: 50000,
-          serviceAreas: ['Banda Aceh', 'Sabang'],
-          skills: ['Pembersihan Umum', 'Pembersihan Kamar Mandi'],
-          equipmentProvided: true
-        }
-      },
-      updateCleanerSchedules: {
-        method: 'PUT',
-        url: '/api/v1/cleaners/schedules',
-        headers: {
-          'Authorization': 'Bearer cleaner_token_here',
-          'Content-Type': 'application/json'
-        },
-        body: {
-          schedules: [
-            {
-              dayOfWeek: 1,
-              startTime: '08:00',
-              endTime: '18:00',
-              isAvailable: true
-            },
-            {
-              dayOfWeek: 2,
-              startTime: '08:00',
-              endTime: '18:00',
-              isAvailable: true
-            }
-          ]
+          status: 'confirmed',
+          notes: 'Pesanan dikonfirmasi, akan tiba dalam 30 menit'
         }
       }
     }
@@ -136,9 +109,10 @@ router.get('/', (req, res) => {
 // Mount route modules
 router.use('/auth', authRoutes);
 router.use('/services', serviceRoutes);
-router.use('/cleaners', cleanerRoutes); // ✅ NEW! Cleaner management routes
+router.use('/cleaners', cleanerRoutes);
+router.use('/orders', orderRoutes); // ✅ NEW! Order management routes
 
-// Placeholder for future routes with planned endpoints
+// Placeholder for future routes
 router.use('/users', (req, res) => {
   res.status(501).json({
     message: 'User management endpoints coming soon',
@@ -147,19 +121,6 @@ router.use('/users', (req, res) => {
       'GET /users/:id - Get user by ID (Admin)',
       'PUT /users/:id - Update user (Admin)',
       'DELETE /users/:id - Delete user (Admin)'
-    ]
-  });
-});
-
-router.use('/orders', (req, res) => {
-  res.status(501).json({
-    message: 'Order management endpoints coming soon',
-    plannedEndpoints: [
-      'GET /orders - List orders',
-      'GET /orders/:id - Get order by ID',
-      'POST /orders - Create order',
-      'PUT /orders/:id/status - Update order status',
-      'DELETE /orders/:id - Cancel order'
     ]
   });
 });
