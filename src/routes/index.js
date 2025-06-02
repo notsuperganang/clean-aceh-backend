@@ -3,7 +3,8 @@ const authRoutes = require('./authRoutes');
 const serviceRoutes = require('./serviceRoutes');
 const cleanerRoutes = require('./cleanerRoutes');
 const orderRoutes = require('./orderRoutes');
-const addressRoutes = require('./addressRoutes'); // Already imported ✅
+const addressRoutes = require('./addressRoutes');
+const paymentRoutes = require('./paymentRoutes');
 
 const router = express.Router();
 
@@ -60,7 +61,7 @@ router.get('/', (req, res) => {
         cancel: 'POST /api/v1/orders/:id/cancel'
       },
       
-      // Addresses ✅ Updated!
+      // Addresses
       addresses: {
         list: 'GET /api/v1/addresses',
         detail: 'GET /api/v1/addresses/:id',
@@ -71,13 +72,23 @@ router.get('/', (req, res) => {
         setMain: 'PUT /api/v1/addresses/:id/main',
         delete: 'DELETE /api/v1/addresses/:id'
       },
+
+      // Payments
+      payments: {
+    create: 'POST /api/v1/payments/create (Customer)',
+    webhook: 'POST /api/v1/payments/webhook (Public - Midtrans)',
+    history: 'GET /api/v1/payments/history (Customer)',
+    detail: 'GET /api/v1/payments/:id (Customer)',
+    methods: 'GET /api/v1/payments/methods (Customer)',
+    addMethod: 'POST /api/v1/payments/methods (Customer)',
+    deleteMethod: 'DELETE /api/v1/payments/methods/:id (Customer)'
+  },
+      
       
       // Coming soon
       reviews: 'GET /api/v1/reviews (Coming Soon)',
-      payments: 'GET /api/v1/payments (Coming Soon)',
       notifications: 'GET /api/v1/notifications (Coming Soon)',
       promotions: 'GET /api/v1/promotions (Coming Soon)'
-      // Removed redundant 'addresses' entry from Coming Soon
     },
     
     // Sample requests
@@ -146,7 +157,8 @@ router.use('/auth', authRoutes);
 router.use('/services', serviceRoutes);
 router.use('/cleaners', cleanerRoutes);
 router.use('/orders', orderRoutes);
-router.use('/addresses', addressRoutes); // ✅ Mount the addressRoutes
+router.use('/addresses', addressRoutes);
+router.use('/payments', paymentRoutes);
 
 // Placeholder for future routes
 router.use('/users', (req, res) => {
@@ -170,18 +182,6 @@ router.use('/reviews', (req, res) => {
       'POST /reviews - Create review',
       'PUT /reviews/:id - Update review',
       'DELETE /reviews/:id - Delete review'
-    ]
-  });
-});
-
-router.use('/payments', (req, res) => {
-  res.status(501).json({
-    message: 'Payment management endpoints coming soon',
-    plannedEndpoints: [
-      'POST /payments/create - Create payment',
-      'GET /payments/:id - Get payment status',
-      'POST /payments/webhook - Payment webhook',
-      'GET /payments/methods - Get payment methods'
     ]
   });
 });
