@@ -1,5 +1,6 @@
 const express = require('express');
 const authRoutes = require('./authRoutes');
+const serviceRoutes = require('./serviceRoutes');
 
 const router = express.Router();
 
@@ -21,9 +22,18 @@ router.get('/', (req, res) => {
         logout: 'POST /api/v1/auth/logout'
       },
       
+      // Services
+      services: {
+        list: 'GET /api/v1/services',
+        detail: 'GET /api/v1/services/:id',
+        categories: 'GET /api/v1/services/categories',
+        create: 'POST /api/v1/services (Admin)',
+        update: 'PUT /api/v1/services/:id (Admin)',
+        delete: 'DELETE /api/v1/services/:id (Admin)',
+        stats: 'GET /api/v1/services/admin/stats (Admin)'
+      },
+      
       // Coming soon
-      users: 'GET /api/v1/users (Coming Soon)',
-      services: 'GET /api/v1/services (Coming Soon)',
       cleaners: 'GET /api/v1/cleaners (Coming Soon)',
       orders: 'GET /api/v1/orders (Coming Soon)',
       reviews: 'GET /api/v1/reviews (Coming Soon)',
@@ -53,6 +63,26 @@ router.get('/', (req, res) => {
           emailOrPhone: 'user@example.com',
           password: 'password123'
         }
+      },
+      listServices: {
+        method: 'GET',
+        url: '/api/v1/services?page=1&limit=10&search=pembersihan&category=General',
+        headers: 'No authentication required'
+      },
+      createService: {
+        method: 'POST',
+        url: '/api/v1/services',
+        headers: {
+          'Authorization': 'Bearer admin_token_here',
+          'Content-Type': 'application/json'
+        },
+        body: {
+          name: 'Pembersihan Jendela',
+          description: 'Layanan pembersihan jendela profesional',
+          basePrice: 90000,
+          durationHours: 1.5,
+          category: 'Windows'
+        }
       }
     }
   });
@@ -60,29 +90,29 @@ router.get('/', (req, res) => {
 
 // Mount route modules
 router.use('/auth', authRoutes);
+router.use('/services', serviceRoutes);
 
 // Placeholder for future routes
-router.use('/users', (req, res) => {
+router.use('/cleaners', (req, res) => {
   res.status(501).json({
-    message: 'User management endpoints coming soon',
+    message: 'Cleaner management endpoints coming soon',
     plannedEndpoints: [
-      'GET /users - List users',
-      'GET /users/:id - Get user by ID',
-      'PUT /users/:id - Update user',
-      'DELETE /users/:id - Delete user'
+      'GET /cleaners - List cleaners',
+      'GET /cleaners/:id - Get cleaner by ID', 
+      'GET /cleaners/search - Search cleaners',
+      'PUT /cleaners/:id/availability - Update availability'
     ]
   });
 });
 
-router.use('/services', (req, res) => {
+router.use('/users', (req, res) => {
   res.status(501).json({
-    message: 'Service management endpoints coming soon',
+    message: 'User management endpoints coming soon',
     plannedEndpoints: [
-      'GET /services - List services',
-      'GET /services/:id - Get service by ID',
-      'POST /services - Create service',
-      'PUT /services/:id - Update service',
-      'DELETE /services/:id - Delete service'
+      'GET /users - List users (Admin)',
+      'GET /users/:id - Get user by ID (Admin)',
+      'PUT /users/:id - Update user (Admin)',
+      'DELETE /users/:id - Delete user (Admin)'
     ]
   });
 });
